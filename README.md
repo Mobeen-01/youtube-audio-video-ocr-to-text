@@ -20,6 +20,16 @@ It combines **OpenAI Whisper** (speech-to-text) and **EasyOCR** (image-to-text) 
 
 ---
 
+
+
+## 📸 Screenshot
+
+Here’s a quick look at the **Media-to-Text / Subtitle Generator** in action:
+
+![App Screenshot](https://github.com/Mobeen-01/youtube-audio-video-ocr-to-text/blob/main/Screenshot_OCR.jpg)
+
+---
+
 ## 🚀 Features
 
 ✅ **YouTube Video Transcription** — paste a YouTube URL, download audio, and transcribe it to text.  
