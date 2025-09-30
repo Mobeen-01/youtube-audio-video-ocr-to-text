@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Media to Text Converter</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-light">
+<div class="container py-4">
+    <h2 class="mb-4 text-center text-primary">
+        <i class="fa-solid fa-file-audio"></i> Media to Text / Subtitle Generator
+    </h2>
+
+    <div class="row g-4">
+        <!-- YouTube Section -->
+        <div class="col-md-4">
+            <div class="card shadow">
+                <div class="card-body">
+                    <h5 class="card-title"><i class="fab fa-youtube text-danger"></i> YouTube</h5>
+                    <form id="youtubeForm" enctype="multipart/form-data">
+                        <input type="text" name="youtube_url" class="form-control mb-2" placeholder="Enter YouTube URL">
+                        <input type="hidden" name="action" value="youtube">
+                        <button class="btn btn-danger w-100 mb-2" type="submit">Convert</button>
+                        <button type="button" class="btn btn-outline-secondary w-100 cancel-btn" data-action="youtube">Cancel</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Upload File Section -->
+        <div class="col-md-4">
+            <div class="card shadow">
+                <div class="card-body">
+                    <h5 class="card-title"><i class="fa-solid fa-file-video text-success"></i> Upload Audio/Video</h5>
+                    <form id="fileForm" enctype="multipart/form-data">
+                        <input type="file" name="media_file" class="form-control mb-2">
+                        <input type="hidden" name="action" value="upload_file">
+                        <button class="btn btn-success w-100 mb-2" type="submit">Convert</button>
+                        <button type="button" class="btn btn-outline-secondary w-100 cancel-btn" data-action="upload_file">Cancel</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- OCR Section -->
+        <div class="col-md-4">
+            <div class="card shadow">
+                <div class="card-body">
+                    <h5 class="card-title"><i class="fa-solid fa-image text-warning"></i> OCR (Image)</h5>
+                    <form id="ocrForm" enctype="multipart/form-data">
+                        <input type="file" name="image_file" class="form-control mb-2">
+                        <input type="hidden" name="action" value="ocr">
+                        <button class="btn btn-warning w-100 mb-2" type="submit">Extract</button>
+                        <button type="button" class="btn btn-outline-secondary w-100 cancel-btn" data-action="ocr">Cancel</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Save Path + Select Button -->
+    <div class="mt-4 d-flex align-items-center gap-2">
+        <label class="form-label mb-0">Save Output Path:</label>
+        <input type="text" id="savePath" class="form-control" placeholder="output/" style="flex:1;">
+        <button class="btn btn-outline-primary" type="button" id="selectDirBtn"><i class="fa fa-folder-open"></i> Select</button>
+    </div>
+    <input type="file" id="dirPicker" webkitdirectory directory style="display:none;"> <!-- hidden folder picker -->
+
+    <!-- Progress Bar -->
+    <div class="progress my-4" style="height: 30px; display:none;" id="progressWrapper">
+        <div id="progressBar" class="progress-bar progress-bar-striped progress-bar-animated bg-info"
+             role="progressbar" style="width: 100%">Processing...</div>
+    </div>
+
+    <!-- Output Box -->
+    <div class="card shadow">
+        <div class="card-body">
+            <h4 class="card-title">Output</h4>
+            <textarea class="form-control" rows="15" id="outputBox"></textarea>
+            <div class="mt-3 d-flex gap-2">
+                <button class="btn btn-outline-success" id="downloadBtn"><i class="fa fa-download"></i> Download</button>
+                <button class="btn btn-outline-danger" id="deleteBtn"><i class="fa fa-trash"></i> Delete</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function handleForm(formId) {
+    const form = document.getElementById(formId);
+    form.addEventListener("submit", function(e) {
+        e.preventDefault();
+        const formData = new FormData(form);
+        formData.append("save_path", document.getElementById("savePath").value);
+
+        document.getElementById("progressWrapper").style.display = "block";
+        document.getElementById("progressBar").className = "progress-bar progress-bar-striped progress-bar-animated bg-info";
+        document.getElementById("progressBar").innerText = "Processing...";
+
+        fetch("/process", {
+            method: "POST",
+            body: formData
+        }).then(res => res.json()).then(data => {
+            if (data.success) {
+                document.getElementById("outputBox").value = data.output;
+                document.getElementById("progressBar").className = "progress-bar bg-success";
+                document.getElementById("progressBar").innerText = "Completed ✅";
+            } else {
+                document.getElementById("progressBar").className = "progress-bar bg-danger";
+                document.getElementById("progressBar").innerText = "Error ❌";
+            }
+        }).catch(err => {
+            document.getElementById("progressBar").className = "progress-bar bg-danger";
+            document.getElementById("progressBar").innerText = "Error ❌ " + err;
+        });
+    });
+}
+
+["youtubeForm", "fileForm", "ocrForm"].forEach(handleForm);
+
+// Cancel buttons
+document.querySelectorAll(".cancel-btn").forEach(btn => {
+    btn.addEventListener("click", function() {
+        fetch("/cancel", { method: "POST" }).then(() => {
+            document.getElementById("progressBar").className = "progress-bar bg-secondary";
+            document.getElementById("progressBar").innerText = "Cancelled ⛔";
+        });
+    });
+});
+
+// Folder select
+document.getElementById("selectDirBtn").addEventListener("click", () => {
+    document.getElementById("dirPicker").click();
+});
+
+document.getElementById("dirPicker").addEventListener("change", (e) => {
+    if (e.target.files.length > 0) {
+        // Folder path = parent directory of first file
+        const path = e.target.files[0].webkitRelativePath.split("/")[0];
+        document.getElementById("savePath").value = path + "/";
+    }
+});
+
+// Download Output
+document.getElementById("downloadBtn").addEventListener("click", () => {
+    const text = document.getElementById("outputBox").value;
+    if (!text.trim()) return alert("No text to download!");
+    const blob = new Blob([text], { type: "text/plain" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "output.txt";
+    a.click();
+    URL.revokeObjectURL(url);
+});
+
+// Delete Output
+document.getElementById("deleteBtn").addEventListener("click", () => {
+    document.getElementById("outputBox").value = "";
+    document.getElementById("progressWrapper").style.display = "none";
+});
+</script>
+
+
+</body>
+</html>

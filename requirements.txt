@@ -1,0 +1,11 @@
+flask
+yt-dlp
+openai-whisper
+easyocr
+torch
+opencv-python-headless
+numpy
+yt-dlp
+openai-whisper
+ffmpeg-python
+easyocr
